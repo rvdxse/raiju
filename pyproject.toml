@@ -1,0 +1,30 @@
+[project]
+name = "raiju-dtek"
+version = "0.1.2"
+description = "DTEK outage schedule for Kyiv in your terminal"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "rvdxse", email = "kirillfilch@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "dtek-blackout-client>=0.1.12",
+    "iterfzf>=1.9.0.67.0",
+    "mcp[cli]>=2.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/rvdxse/raiju"
+
+[project.scripts]
+raiju = "raiju.cli:run"
+raiju-mcp = "raiju.mcp_server:main"
+
+[tool.uv.build-backend]
+module-name = "raiju"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
