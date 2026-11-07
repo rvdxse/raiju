@@ -119,11 +119,20 @@ def ensure_chromium() -> None:
     with sync_playwright() as p:
         if Path(p.chromium.executable_path).exists():
             return
-    print("Завантажую Chromium (лише один раз)...", file=sys.stderr)
-    subprocess.run(
-        [sys.executable, "-m", "playwright", "install", "--with-deps", "chromium"],
-        check=True,
-    )
+
+    err_console.print("[cyan]Завантажую Chromium (лише один раз)...[/cyan]")
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            check=True,
+            stdout=sys.stderr,  # keep stdout clean for MCP
+        )
+    except subprocess.CalledProcessError:
+        err_console.print(
+            "[bold red]Не вдалося завантажити Chromium.[/bold red] "
+            "Спробуйте вручну: python -m playwright install chromium"
+        )
+        sys.exit(1)
 
 
 def run() -> None:
