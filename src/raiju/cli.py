@@ -8,12 +8,18 @@ from dtek_client import DtekClient
 from dtek_client.browser_auth import get_cleared_cookies
 from dtek_client.exceptions import DtekDataError
 from iterfzf import iterfzf
+from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 from .schedule import format_interval, get_outage_intervals
 
 BASE_URL = "https://www.dtek-kem.com.ua"
 SCHEDULE_URL = f"{BASE_URL}/ua/shutdowns"
 CITY = "м. Київ"
+console = Console()
+err_console = Console(stderr=True)
 
 
 def pick(options: list[str], prompt: str) -> str:
@@ -41,43 +47,69 @@ async def make_session() -> AsyncSession:
     )
 
 
-def print_schedule(response, number: str) -> None:
-    house = response.houses[number]
-    if house.is_excluded:
-        print("Адреса не входить до графіка")
-        return
-    if response.fact is None:
-        print("Графік зараз недоступний")
+def print_schedule(response, street: str, number: str) -> None:
+    house = response.houses.get(number)
+
+    if not house:
+        err_console.print("⚠️ [bold red]Адресу не знайдено[/]")
         return
 
+    if house.is_excluded:
+        err_console.print("⚠️ [bold yellow]Цієї адреси немає в графіках[/]")
+        return
+
+    if response.fact is None:
+        err_console.print("📡 [bold yellow]Графік наразі недоступний[/]")
+        return
+
+    table = Table(
+        show_header=True,
+        header_style="bold cyan",
+        box=box.ROUNDED,
+        show_lines=True,
+    )
+    table.add_column("Група", style="bold magenta", justify="center")
+    table.add_column("Графік на сьогодні", justify="left")
+
     for group_id in house.group_ids:
-        print(f"\n{group_id}")
         schedule = response.fact.get_group_today(group_id)
+
         if schedule is None:
-            print("Графік недоступний")
+            table.add_row(group_id, "[dim italic]Інформація відсутня[/]")
             continue
 
         intervals = get_outage_intervals(schedule)
+
         if intervals:
-            print("Відключення світла:")
-            for start, end in intervals:
-                print(f"🔴 {format_interval(start, end)}")
+            text = "\n".join(
+                f"[bold red]🔴 {format_interval(s, e)}[/]" for s, e in intervals
+            )
         else:
-            print("🟢 Відключень не планується")
+            text = "[bold green]🟢 Відключень не очікується[/]"
+
+        table.add_row(group_id, text)
+    title = f"📍 [bold white]{street}, {number}[/]"
+    console.print(Panel(table, title=title, border_style="cyan", expand=False))
+
+
+def spin(text: str):
+    return console.status(f"[bold green]{text}[/bold green]", spinner="bouncingBall")
 
 
 async def main() -> None:
-    session = await make_session()
+    with spin("Відкриваю сесію..."):
+        session = await make_session()
     async with DtekClient(
         "kem", ajax_url=f"{BASE_URL}/ua/ajax", session=session
     ) as client:
-        streets = await client.get_streets(CITY)
+        with spin("Завантажую вулиці..."):
+            streets = await client.get_streets(CITY)
         street = pick([s.name for s in streets], "Вулиця> ")
-
-        response = await client.get_home_num(city=CITY, street=street)
+        with spin("Завантажую будинки..."):
+            response = await client.get_home_num(city=CITY, street=street)
         number = pick(list(response.houses), "Будинок> ")
 
-        print_schedule(response, number)
+        print_schedule(response, street, number)
 
 
 def ensure_chromium() -> None:
@@ -99,6 +131,7 @@ def run() -> None:
     try:
         asyncio.run(main())
     except DtekDataError as e:
-        sys.exit(f"Помилка DTEK: {e}")
+        err_console.print(f"[bold red]Помилка DTEK:[/bold red] {e}")
+        sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(130)
