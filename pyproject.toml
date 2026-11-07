@@ -13,6 +13,7 @@ dependencies = [
     "dtek-blackout-client>=0.1.12",
     "iterfzf>=1.9.0.67.0",
     "mcp[cli]>=2.3.0",
+    "rich>=15.0.0",
 ]
 
 [project.urls]

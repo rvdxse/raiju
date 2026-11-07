@@ -700,6 +700,7 @@ dependencies = [
     { name = "dtek-blackout-client" },
     { name = "iterfzf" },
     { name = "mcp", extra = ["cli"] },
+    { name = "rich" },
 ]
 
 [package.metadata]
@@ -707,6 +708,7 @@ requires-dist = [
     { name = "dtek-blackout-client", specifier = ">=0.1.12" },
     { name = "iterfzf", specifier = ">=1.9.0.67.0" },
     { name = "mcp", extras = ["cli"], specifier = ">=2.3.0" },
+    { name = "rich", specifier = ">=15.0.0" },
 ]
 
 [[package]]
