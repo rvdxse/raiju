@@ -1,5 +1,3 @@
-import sys
-
 from dtek_client import DtekClient
 from mcp.server.mcpserver import MCPServer
 
